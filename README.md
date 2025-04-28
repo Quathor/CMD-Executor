@@ -1,30 +1,36 @@
-# CMD-Executor
+好的主人喵！Sydeny 为您重新编写了 `README.md` 文件，使其更清晰、更易于理解：
+
+```markdown
+# CMD Executor
+
 这是一个基于 `mcp.server` 框架的 Windows CMD 命令执行工具，允许通过 MCP 协议远程执行 CMD 命令。
 
 ## 功能特性
 
-*   **远程命令执行:** 通过 `mcp.server` 提供的接口，安全地执行 Windows CMD 命令。
-*   **可配置的工作目录:**
+*   **远程命令执行：** 通过 `mcp.server` 提供的接口，安全地执行 Windows CMD 命令。
+*   **可配置的工作目录：**
     *   可以通过以下方式指定命令执行的工作目录 (CWD)：
         1.  在调用 `execute` 方法时，显式地传入 `cwd` 参数。
         2.  如果未指定 `cwd` 参数，则优先使用项目根目录下的 `.env` 文件中定义的 `SANDBOX_PATH` 环境变量。
-*   **UTF-8 JSON 响应:**  返回的 JSON 响应使用 UTF-8 编码，直接包含 Unicode 字符
-*   **错误处理:**  详细的错误处理和日志记录，方便问题排查。
+*   **UTF-8 JSON 响应：** 返回的 JSON 响应使用 UTF-8 编码，直接包含 Unicode 字符。
+*   **错误处理：** 详细的错误处理和日志记录，方便问题排查。
 
 ## 依赖
 
-*   `python-dotenv`:  用于加载 `.env` 文件中的环境变量。
-*   `fast-mcp`:  `mcp.server` 的一个快速实现。
+*   `python-dotenv`：用于加载 `.env` 文件中的环境变量。
+*   `fast-mcp`：`mcp.server` 的一个快速实现。
 
 您可以使用 `requirements.txt` 文件来安装所有依赖：
 
 ```bash
 pip install -r requirements.txt
+```
 
 ## 安装步骤
-1.  **克隆仓库:`pip install -r requirements.txt` 
-2.  **安装依赖:** 运行 `pip install -r requirements.txt` 安装所有依赖。
-3.  **配置 `.env` (建议):** 在项目根目录下创建一个 `.env` 文件，并设置 `SANDBOX_PATH` 环境变量，以指定默认的工作目录：
+
+1.  **克隆仓库：** 将此仓库克隆到您的本地计算机。
+2.  **安装依赖：** 运行 `pip install -r requirements.txt` 安装所有依赖。
+3.  **配置 `.env` (可选)：** 在项目根目录下创建一个 `.env` 文件，并设置 `SANDBOX_PATH` 环境变量，以指定默认的工作目录：
 
     ```dotenv
     SANDBOX_PATH=Your_Desired_Path
@@ -32,9 +38,9 @@ pip install -r requirements.txt
 
 ## 配置说明
 
-   在您的MCP客户端的配置文件中添加或修改以下内容，以注册此服务器：
+在您的 MCP 客户端的配置文件中添加或修改以下内容，以注册此服务器：
 
-    ```json
+```json
 {
     "mcpServers": {
         "name": { 
@@ -46,7 +52,13 @@ pip install -r requirements.txt
         }
     }
 }
+```
 
+**注意：**
+
+*   请将 `your-path/python.exe` 替换为您的 Python 解释器的实际路径。
+*   请将 `your-program-path/main.py` 替换为 `main.py` 文件的实际路径。
+*   `name` 字段可以替换为您喜欢的任何名称。
 
 ## 安全声明
 
@@ -58,4 +70,6 @@ pip install -r requirements.txt
 *   **您将承担所有风险。** 使用本工具所产生的一切后果由您自行承担，作者不承担任何责任。
 
 ## 许可
+
 本项目使用 [MIT 许可证](LICENSE)。
+```
