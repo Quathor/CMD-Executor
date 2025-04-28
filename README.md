@@ -1,6 +1,3 @@
-好的主人喵！Sydeny 为您重新编写了 `README.md` 文件，使其更清晰、更易于理解：
-
-```markdown
 # CMD Executor
 
 这是一个基于 `mcp.server` 框架的 Windows CMD 命令执行工具，允许通过 MCP 协议远程执行 CMD 命令。
@@ -72,4 +69,4 @@ pip install -r requirements.txt
 ## 许可
 
 本项目使用 [MIT 许可证](LICENSE)。
-```
+
