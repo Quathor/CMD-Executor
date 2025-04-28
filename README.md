@@ -26,7 +26,7 @@ pip install -r requirements.txt
 
 1.  **克隆仓库：** 将此仓库克隆到您的本地计算机。
 2.  **安装依赖：** 运行 `pip install -r requirements.txt` 安装所有依赖。
-3.  **配置 `.env` (可选)：** 在项目根目录下创建一个 `.env` 文件，并设置 `SANDBOX_PATH` 环境变量，以指定默认的工作目录：
+3.  **配置 `.env` (建议)：** 在项目根目录下创建一个 `.env` 文件，并设置 `SANDBOX_PATH` 环境变量，以指定默认的工作目录：
 
     ```dotenv
     SANDBOX_PATH=Your_Desired_Path
