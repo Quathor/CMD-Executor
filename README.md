@@ -13,7 +13,7 @@
 
 ## 依赖
 
-*   `python-dotenv`：用于加载 `.env` 文件中的环境变量。
+* `python-dotenv`：用于加载 `.env` 文件中的环境变量。
 *   `fast-mcp`：`mcp.server` 的一个快速实现。
 
 您可以使用 `requirements.txt` 文件来安装所有依赖：
