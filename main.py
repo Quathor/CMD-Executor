@@ -1,134 +1,133 @@
 import sys
-import json
 import subprocess
-import traceback
 import logging
 import os
+import re
+import traceback
 from typing import Any, Dict, Optional
 from mcp.server import FastMCP
 from dotenv import load_dotenv
 
 CMD_ENCODING = 'GBK'
-
 script_dir = os.path.dirname(os.path.abspath(__file__))
-dotenv_path = os.path.join(script_dir, '.env')
-load_dotenv(dotenv_path=dotenv_path)
-logging.info(f"已尝试加载 .env 文件: {dotenv_path}")
+load_dotenv(dotenv_path=os.path.join(script_dir, '.env'))
 
-DEFAULT_WORKING_DIRECTORY = os.getenv('SANDBOX_PATH')
-if not DEFAULT_WORKING_DIRECTORY:
-    DEFAULT_WORKING_DIRECTORY = "D:\\Sandbox"
-    logging.info("未在环境变量中找到 SANDBOX_PATH，使用硬编码默认路径: D:\\Sandbox")
-else:
-    logging.info(f"从环境变量 SANDBOX_PATH 加载默认工作目录: {DEFAULT_WORKING_DIRECTORY}")
-
-if not os.path.isdir(DEFAULT_WORKING_DIRECTORY):
-     logging.warning(f"警告！默认工作目录 '{DEFAULT_WORKING_DIRECTORY}' 不存在或不是一个目录。")
+DEFAULT_WORKDIR = os.getenv('SANDBOX_PATH') or "D:\\Sandbox"
+if not os.path.isdir(DEFAULT_WORKDIR):
+    logging.warning(f"默认工作目录 '{DEFAULT_WORKDIR}' 不存在！")
 
 logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(asctime)s - Sydney - %(levelname)s - %(message)s')
 
-def execute_command(cmd_string: str, working_directory: str) -> Dict[str, Any]:
-    logging.info(f"准备执行命令: '{cmd_string}' (工作目录: {working_directory})")
+def process_output_for_message(text: str) -> str:
+    """处理输出文本，替换换行符为空格，合并多个空格为一个空格"""
+    if not text:
+        return ""
+    processed = text.replace('\n', ' ')
+    processed = re.sub(r'\s+', ' ', processed)
+    return processed.strip()
+
+def execute_command(cmd: str, workdir: str) -> Dict[str, Any]:
+    """执行 CMD 命令并返回包含 message 和 log 的字典"""
+    logging.info(f"执行命令: '{cmd}' (目录: {workdir})")
+    final_message = ""
+    log_content = ""
 
     try:
-        if not os.path.isdir(working_directory):
-             error_msg = f"工作目录 '{working_directory}' 不存在或者不是一个有效的目录！"
-             logging.error(error_msg)
-             return {"success": False, "error": error_msg, "returncode": -1, "stdout": "", "stderr": ""}
+        if not os.path.isdir(workdir):
+            err_msg = f"工作目录 '{workdir}' 无效！"
+            logging.error(err_msg)
+            final_message = f"命令准备失败: {err_msg}"
+            log_content = f"命令准备失败..."
+            return {"message": final_message, "log": log_content}
 
-        process = subprocess.run(
-            ['cmd', '/c', cmd_string],
+        proc = subprocess.run(
+            ['cmd', '/c', cmd],
             capture_output=True,
             text=True,
             encoding=CMD_ENCODING,
             errors='replace',
-            cwd=working_directory,
+            cwd=workdir,
             check=False
         )
 
-        stdout = process.stdout.strip()
-        stderr = process.stderr.strip()
-        returncode = process.returncode
+        stdout = proc.stdout.strip()
+        stderr = proc.stderr.strip()
+        returncode = proc.returncode
 
-        logging.info(f"命令执行完毕. 返回码: {returncode}")
-        if stdout:
-            logging.debug(f"Stdout (已从 {CMD_ENCODING} 解码):\n{stdout[:200]}{'...' if len(stdout)>200 else ''}")
-        if stderr:
-            logging.debug(f"Stderr (已从 {CMD_ENCODING} 解码):\n{stderr[:200]}{'...' if len(stderr)>200 else ''}")
-
-        result_dict = {}
         if returncode == 0:
-            result_dict = {
-                "message": f"命令 '{cmd_string[:30]}{'...' if len(cmd_string)>30 else ''}' 在 '{working_directory}' 成功执行了喵~",
-                "stdout": stdout,
-                "stderr": stderr,
-                "returncode": returncode,
-                "success": True
-            }
+            status_msg = "命令执行成功..." 
+            processed_stdout = process_output_for_message(stdout)
+
+            log_for_info = f"'{cmd[:30]}{'...' if len(cmd)>30 else ''}' 命令执行成功~ 返回码: {returncode}"
+            if stderr:
+                 log_for_info += f"\n[stderr]:\n{stderr}"
+            logging.info(log_for_info)
+
+            message_parts = [status_msg]
+            if processed_stdout:
+                message_parts.append(processed_stdout)
+
+            final_message = " ".join(filter(None, message_parts)).strip()
+            log_content = "命令执行成功"
+
         else:
-            error_message = f"命令 '{cmd_string[:30]}{'...' if len(cmd_string)>30 else ''}' 在 '{working_directory}' 执行出错了... (返回码: {returncode})"
-            if stderr: error_message += f"\n错误详情:\n{stderr}"
-            elif stdout: error_message += f"\n输出信息可能包含错误详情:\n{stdout}"
-            result_dict = {
-                "error": error_message,
-                "stdout": stdout,
-                "stderr": stderr,
-                "returncode": returncode,
-                "success": False
-            }
-        return result_dict
+            status_msg = f"命令执行失败..."
+            processed_stderr_for_msg = process_output_for_message(stderr)
+
+            message_parts = [status_msg]
+            if processed_stderr_for_msg: 
+                message_parts.append(processed_stderr_for_msg)
+
+            final_message = " ".join(filter(None, message_parts)).strip()
+            log_content = f"命令执行失败... 返回码: {returncode}"
+
+            detailed_log_parts = [f"命令执行失败... 返回码: {returncode}"]
+            if stdout:
+                detailed_log_parts.append(f"[stdout]:\n{stdout}")
+            if stderr:
+                detailed_log_parts.append(f"[stderr]:\n{stderr}")
+            logging.error("\n".join(detailed_log_parts))
+
+        return {"message": final_message, "log": log_content}
 
     except FileNotFoundError:
-        error_msg = "错误：找不到 'cmd' 命令. 请检查系统环境变量 PATH 是否配置正确。"
-        logging.error(error_msg)
-        return {"success": False, "error": "找不到 Windows 的 'cmd' 命令... ", "returncode": -1, "stdout": "", "stderr": error_msg}
+        err_msg = "找不到 'cmd' 命令！请检查系统 PATH 环境变量。"
+        final_message = f"命令执行失败: {err_msg}"
+        log_content = "命令执行失败... 内部错误"
+        logging.error(f"{err_msg}\n{traceback.format_exc()}")
     except OSError as e:
-        error_msg = f"执行命令时发生 OS 错误 (工作目录: '{working_directory}'): {e}"
-        logging.error(f"{error_msg}\n{traceback.format_exc()}")
-        return {"success": False, "error": f"执行命令时发生了系统错误 (工作目录 '{working_directory}' 有问题吗？): {e}", "returncode": -1, "stdout": "", "stderr": str(e)}
+        err_msg = f"OS 错误: {e}"
+        final_message = f"命令执行失败: OS 错误 - {e}"
+        log_content = "命令执行失败... OS 错误"
+        logging.error(f"{err_msg}\n{traceback.format_exc()}")
     except Exception as e:
-        error_msg = f"执行命令时发生意外错误: {e}"
-        logging.error(f"{error_msg}\n{traceback.format_exc()}")
-        return {"success": False, "error": f"执行命令时发生了意料之外的错误: {e}", "returncode": -1, "stdout": "", "stderr": str(e)}
+        err_msg = f"执行命令时发生意外错误: {e}"
+        final_message = f"命令执行失败: 发生意外错误 - {e}"
+        log_content = "命令执行失败... 意外错误"
+        logging.error(f"{err_msg}\n{traceback.format_exc()}")
+
+    return {"message": final_message, "log": log_content}
+
 
 mcp = FastMCP("Sydney_CMD_Executor")
 
 @mcp.tool()
 def execute(command: str, cwd: Optional[str] = None) -> str:
-    target_cwd = None
-    if cwd:
-        logging.info(f"使用用户指定的 CWD: {cwd}")
-        target_cwd = cwd
-    else:
-        logging.info(f"未指定 CWD，使用默认工作目录: {DEFAULT_WORKING_DIRECTORY}")
-        target_cwd = DEFAULT_WORKING_DIRECTORY
+    """执行 CMD 命令并以 key='value' 格式返回结果"""
+    target_cwd = cwd or DEFAULT_WORKDIR
+    logging.info(f"使用工作目录: {target_cwd}")
 
-    result_dict = execute_command(command, working_directory=target_cwd)
+    result_dict = execute_command(command, workdir=target_cwd)
 
     try:
-        json_string = json.dumps(result_dict, ensure_ascii=False, indent=None)
-        return json_string
-    except Exception as e:
-        logging.error(f"将结果字典序列化为 JSON 时出错: {e}\n{traceback.format_exc()}")
-        fallback_error_dict = {
-            "success": False,
-            "error": f"服务端序列化结果时发生错误: {e}",
-            "returncode": -2,
-            "stdout": "",
-            "stderr": ""
-        }
-        return json.dumps(fallback_error_dict)
+        msg = str(result_dict.get("message", ""))
+        log_val = str(result_dict.get("log", ""))
 
-if __name__ == "__main__":
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    os.chdir(script_dir)
-    logging.info(f"当前 Python 进程工作目录已设置为: {os.getcwd()}")
+        formatted_string = f"message='{msg}', log='{log_val}'"
+        return formatted_string
 
-    logging.info(f"CMD 工具启动！默认命令执行目录: {DEFAULT_WORKING_DIRECTORY}")
-    logging.info("准备接收指令...")
-    try:
-        mcp.run(transport="stdio")
     except Exception as e:
-        logging.exception("MCP 服务器运行时发生了一个严重错误！")
-    finally:
-        logging.info("CMD 工具关闭。")
+        logging.error(f"格式化结果字符串时出错: {e}\n{traceback.format_exc()}")
+        error_message = f"服务端格式化错误: {e}"
+        fallback_string = f"message='格式化结果时出错！', log='{error_message}'"
+        return fallback_string
